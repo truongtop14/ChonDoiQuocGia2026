@@ -18,37 +18,6 @@ Hệ thống hỗ trợ:
 - Tính điểm từng bài.
 - Tính điểm trung bình toàn bộ kỳ thi.
 
----
-
-# 📂 Cấu trúc thư mục
-
-```
-
-OJ_AUTO/
-
-│
-├── judge.py                  # Chương trình chấm tổng
-├── README.md
-│
-├── problems/
-│
-│   ├── bai1/
-│   │   ├── main.cpp          # Code thí sinh
-│   │   ├── checker.py        # Bộ sinh test + chấm
-│   │
-│   ├── bai2/
-│   │   ├── main.cpp
-│   │   ├── checker.py
-│   │
-│   ├── bai3/
-│   │
-│   ...
-│
-└── result.txt
-
-```
-
----
 
 # ⚙️ Yêu cầu môi trường
 
