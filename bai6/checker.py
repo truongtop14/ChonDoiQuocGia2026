@@ -1,3 +1,4 @@
+
 import os
 import random
 import subprocess
@@ -26,7 +27,6 @@ EXE_FILE = os.path.join(
 TIME_LIMIT = 1.0          # seconds
 TEST_PER_SUBTASK = 5
 
-
 # ==================================================
 # COMPILE
 # ==================================================
@@ -54,57 +54,78 @@ if ret.returncode != 0:
 
 print("Compile Success!")
 
+from math import sqrt
+
+def dist2(a, b):
+    dx = a[0] - b[0]
+    dy = a[1] - b[1]
+    return dx * dx + dy * dy
+
+
+def closest(px):
+
+    n = len(px)
+
+    if n <= 3:
+
+        ans = float("inf")
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                ans = min(ans, dist2(px[i], px[j]))
+
+        return ans, sorted(px, key=lambda p: p[1])
+
+    mid = n // 2
+
+    xmid = px[mid][0]
+
+    dl, leftY = closest(px[:mid])
+    dr, rightY = closest(px[mid:])
+
+    d = min(dl, dr)
+
+    py = []
+
+    i = j = 0
+
+    while i < len(leftY) and j < len(rightY):
+
+        if leftY[i][1] < rightY[j][1]:
+            py.append(leftY[i])
+            i += 1
+        else:
+            py.append(rightY[j])
+            j += 1
+
+    py.extend(leftY[i:])
+    py.extend(rightY[j:])
+
+    strip = []
+
+    for p in py:
+
+        if (p[0] - xmid) * (p[0] - xmid) < d:
+
+            for q in strip[-7:]:
+
+                d = min(d, dist2(p, q))
+
+            strip.append(p)
+
+    return d, py
+
+
+def solve(points):
+
+    px = sorted(points)
+
+    ans2, _ = closest(px)
+
+    return "{:.6f}".format(sqrt(ans2))
 # ==================================================
-# SEGMENT TREE (Official Solution)
+# TEST GENERATOR
 # ==================================================
-
-INF = 10 ** 18
-
-def build(id, l, r, st, a):
-
-    if l == r:
-        st[id] = a[l]
-        return
-
-    mid = (l + r) // 2
-
-    build(id * 2, l, mid, st, a)
-    build(id * 2 + 1, mid + 1, r, st, a)
-
-    st[id] = min(st[id * 2], st[id * 2 + 1])
-
-
-def query(id, l, r, u, v, st):
-
-    if v < l or r < u:
-        return INF
-
-    if u <= l and r <= v:
-        return st[id]
-
-    mid = (l + r) // 2
-
-    return min(
-        query(id * 2, l, mid, u, v, st),
-        query(id * 2 + 1, mid + 1, r, u, v, st)
-    )
-
-
-def solve(a, queries):
-
-    n = len(a) - 1
-
-    st = [INF] * (4 * (n + 5))
-
-    build(1, 1, n, st, a)
-
-    ans = []
-
-    for l, r in queries:
-        ans.append(str(query(1, 1, n, l, r, st)))
-
-    return "\n".join(ans)
-
 # ==================================================
 # TEST GENERATOR
 # ==================================================
@@ -113,34 +134,31 @@ def gen_test(sub):
 
     if sub == 1:
 
-        n = random.randint(1, 1000)
-        q = random.randint(1, 1000)
+        n = random.randint(2, 2000)
 
     elif sub == 2:
 
-        n = random.randint(5000, 10000)
-        q = random.randint(5000, 10000)
+        n = random.randint(20001, 50000)
 
     else:
 
         n = random.randint(100000, 200000)
-        q = random.randint(100000, 200000)
 
-    a = [0]
+    points = []
+    used = set()
 
-    for _ in range(n):
-        a.append(random.randint(-10 ** 9, 10 ** 9))
+    while len(points) < n:
 
-    queries = []
+        x = random.randint(-10**9, 10**9)
+        y = random.randint(-10**9, 10**9)
 
-    for _ in range(q):
+        if (x, y) not in used:
 
-        l = random.randint(1, n)
-        r = random.randint(l, n)
+            used.add((x, y))
+            points.append((x, y))
 
-        queries.append((l, r))
+    return n, points
 
-    return n, q, a, queries
 
 # ==================================================
 # RUN CPP
@@ -181,35 +199,36 @@ def run_cpp(inp):
 
         return "", 0, str(e)
 
+
 # ==================================================
 # JUDGE
 # ==================================================
 
 SUBTASK_SCORE = {
-    1:20,
-    2:30,
-    3:50
+    1: 20,
+    2: 30,
+    3: 50
 }
 
 score = 0
 
-for sub in [1,2,3]:
+EPS = 1e-6
+
+for sub in [1, 2, 3]:
 
     print("\n" + "=" * 60)
-    print("Subtask",sub)
+    print("Subtask", sub)
 
     ok = True
 
     for tc in range(TEST_PER_SUBTASK):
 
-        n,q,a,queries = gen_test(sub)
+        n, points = gen_test(sub)
 
-        inp = f"{n} {q}\n"
+        inp = str(n) + "\n"
 
-        inp += " ".join(map(str,a[1:])) + "\n"
-
-        for l,r in queries:
-            inp += f"{l} {r}\n"
+        for x, y in points:
+            inp += f"{x} {y}\n"
 
         out_cpp, runtime, status = run_cpp(inp)
 
@@ -225,21 +244,29 @@ for sub in [1,2,3]:
             ok = False
             break
 
-        out_std = solve(a,queries)
+        out_std = solve(points)
 
-        if out_cpp != out_std:
+        try:
 
-            print(f"Test {tc+1}: WA")
+            ans_cpp = float(out_cpp)
+            ans_std = float(out_std)
 
-            print("\nInput:")
-            print(inp[:1000])
+            if abs(ans_cpp - ans_std) > EPS:
 
-            print("\nExpected:")
-            print("\n".join(out_std.split("\n")[:20]))
+                print(f"Test {tc+1}: WA")
 
-            print("\nGot:")
-            print("\n".join(out_cpp.split("\n")[:20]))
+                print("\nInput:")
+                print(inp[:1000])
 
+                print("\nExpected:", out_std)
+                print("Got     :", out_cpp)
+
+                ok = False
+                break
+
+        except:
+
+            print("Invalid Output")
             ok = False
             break
 
@@ -256,5 +283,5 @@ for sub in [1,2,3]:
         print(f"Subtask {sub}: Failed")
 
 print("\n" + "=" * 60)
-print("FINAL SCORE:",score,"/100")
+print("FINAL SCORE:", score, "/100")
 print("=" * 60)

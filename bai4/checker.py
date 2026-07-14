@@ -25,8 +25,6 @@ EXE_FILE = os.path.join(
 
 TIME_LIMIT = 1.0          # seconds
 TEST_PER_SUBTASK = 5
-
-
 # ==================================================
 # COMPILE
 # ==================================================
@@ -55,55 +53,53 @@ if ret.returncode != 0:
 print("Compile Success!")
 
 # ==================================================
-# SEGMENT TREE (Official Solution)
+# OFFICIAL SOLUTION
+# Binary Search + Greedy
 # ==================================================
 
-INF = 10 ** 18
+def check(a, k, limit):
 
-def build(id, l, r, st, a):
+    cnt = 1
+    cur = 0
 
-    if l == r:
-        st[id] = a[l]
-        return
+    for x in a:
 
-    mid = (l + r) // 2
+        if cur + x <= limit:
 
-    build(id * 2, l, mid, st, a)
-    build(id * 2 + 1, mid + 1, r, st, a)
+            cur += x
 
-    st[id] = min(st[id * 2], st[id * 2 + 1])
+        else:
 
+            cnt += 1
+            cur = x
 
-def query(id, l, r, u, v, st):
+            if cnt > k:
+                return False
 
-    if v < l or r < u:
-        return INF
-
-    if u <= l and r <= v:
-        return st[id]
-
-    mid = (l + r) // 2
-
-    return min(
-        query(id * 2, l, mid, u, v, st),
-        query(id * 2 + 1, mid + 1, r, u, v, st)
-    )
+    return True
 
 
-def solve(a, queries):
+def solve(a, k):
 
-    n = len(a) - 1
+    left = max(a)
+    right = sum(a)
 
-    st = [INF] * (4 * (n + 5))
+    ans = right
 
-    build(1, 1, n, st, a)
+    while left <= right:
 
-    ans = []
+        mid = (left + right) // 2
 
-    for l, r in queries:
-        ans.append(str(query(1, 1, n, l, r, st)))
+        if check(a, k, mid):
 
-    return "\n".join(ans)
+            ans = mid
+            right = mid - 1
+
+        else:
+
+            left = mid + 1
+
+    return ans
 
 # ==================================================
 # TEST GENERATOR
@@ -113,34 +109,28 @@ def gen_test(sub):
 
     if sub == 1:
 
-        n = random.randint(1, 1000)
-        q = random.randint(1, 1000)
+        n = random.randint(1,20)
 
     elif sub == 2:
 
-        n = random.randint(5000, 10000)
-        q = random.randint(5000, 10000)
+        n = random.randint(1000,2000)
 
     else:
 
-        n = random.randint(100000, 200000)
-        q = random.randint(100000, 200000)
+        n = random.randint(100000,200000)
 
-    a = [0]
+    k = random.randint(1,n)
+
+    a = []
 
     for _ in range(n):
-        a.append(random.randint(-10 ** 9, 10 ** 9))
 
-    queries = []
+        if sub == 3:
+            a.append(random.randint(1,10**9))
+        else:
+            a.append(random.randint(1,1000))
 
-    for _ in range(q):
-
-        l = random.randint(1, n)
-        r = random.randint(l, n)
-
-        queries.append((l, r))
-
-    return n, q, a, queries
+    return n,k,a
 
 # ==================================================
 # RUN CPP
@@ -148,15 +138,15 @@ def gen_test(sub):
 
 def run_cpp(inp):
 
-    with open("input.txt", "w") as f:
+    with open("input.txt","w") as f:
         f.write(inp)
 
     start = time.perf_counter()
 
     try:
 
-        with open("input.txt") as fin, \
-             open("output.txt", "w") as fout:
+        with open("input.txt") as fin,\
+             open("output.txt","w") as fout:
 
             subprocess.run(
                 [EXE_FILE],
@@ -166,88 +156,81 @@ def run_cpp(inp):
                 timeout=TIME_LIMIT
             )
 
-        elapsed = time.perf_counter() - start
+        elapsed = time.perf_counter()-start
 
         with open("output.txt") as f:
-            out = f.read().strip()
+            out=f.read().strip()
 
-        return out, elapsed, "OK"
+        return out,elapsed,"OK"
 
     except subprocess.TimeoutExpired:
 
-        return "", TIME_LIMIT, "TLE"
+        return "",TIME_LIMIT,"TLE"
 
     except Exception as e:
 
-        return "", 0, str(e)
+        return "",0,str(e)
 
 # ==================================================
 # JUDGE
 # ==================================================
 
-SUBTASK_SCORE = {
+SUBTASK_SCORE={
     1:20,
     2:30,
     3:50
 }
 
-score = 0
+score=0
 
 for sub in [1,2,3]:
 
-    print("\n" + "=" * 60)
+    print("\n"+"="*60)
     print("Subtask",sub)
 
-    ok = True
+    ok=True
 
     for tc in range(TEST_PER_SUBTASK):
 
-        n,q,a,queries = gen_test(sub)
+        n,k,a=gen_test(sub)
 
-        inp = f"{n} {q}\n"
+        inp=f"{n} {k}\n"
+        inp+=" ".join(map(str,a))+"\n"
 
-        inp += " ".join(map(str,a[1:])) + "\n"
+        out_cpp,runtime,status=run_cpp(inp)
 
-        for l,r in queries:
-            inp += f"{l} {r}\n"
-
-        out_cpp, runtime, status = run_cpp(inp)
-
-        if status == "TLE":
+        if status=="TLE":
 
             print(f"Test {tc+1}: TLE")
-            ok = False
+            ok=False
             break
 
-        if status != "OK":
+        if status!="OK":
 
             print(status)
-            ok = False
+            ok=False
             break
 
-        out_std = solve(a,queries)
+        out_std=str(solve(a,k))
 
-        if out_cpp != out_std:
+        if out_cpp!=out_std:
 
             print(f"Test {tc+1}: WA")
 
             print("\nInput:")
             print(inp[:1000])
 
-            print("\nExpected:")
-            print("\n".join(out_std.split("\n")[:20]))
+            print("\nExpected:",out_std)
+            print("Got     :",out_cpp)
 
-            print("\nGot:")
-            print("\n".join(out_cpp.split("\n")[:20]))
-
-            ok = False
+            ok=False
             break
 
         print(f"Test {tc+1}: AC ({runtime:.4f}s)")
 
     if ok:
 
-        score += SUBTASK_SCORE[sub]
+        score+=SUBTASK_SCORE[sub]
 
         print(f"Subtask {sub}: Accepted (+{SUBTASK_SCORE[sub]} điểm)")
 
@@ -255,6 +238,6 @@ for sub in [1,2,3]:
 
         print(f"Subtask {sub}: Failed")
 
-print("\n" + "=" * 60)
+print("\n"+"="*60)
 print("FINAL SCORE:",score,"/100")
-print("=" * 60)
+print("="*60)

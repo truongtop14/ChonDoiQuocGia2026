@@ -25,8 +25,6 @@ EXE_FILE = os.path.join(
 
 TIME_LIMIT = 1.0          # seconds
 TEST_PER_SUBTASK = 5
-
-
 # ==================================================
 # COMPILE
 # ==================================================
@@ -55,10 +53,8 @@ if ret.returncode != 0:
 print("Compile Success!")
 
 # ==================================================
-# SEGMENT TREE (Official Solution)
+# SEGMENT TREE
 # ==================================================
-
-INF = 10 ** 18
 
 def build(id, l, r, st, a):
 
@@ -71,37 +67,64 @@ def build(id, l, r, st, a):
     build(id * 2, l, mid, st, a)
     build(id * 2 + 1, mid + 1, r, st, a)
 
-    st[id] = min(st[id * 2], st[id * 2 + 1])
+    st[id] = st[id * 2] + st[id * 2 + 1]
+
+
+def update(id, l, r, pos, val, st):
+
+    if l == r:
+        st[id] = val
+        return
+
+    mid = (l + r) // 2
+
+    if pos <= mid:
+        update(id * 2, l, mid, pos, val, st)
+    else:
+        update(id * 2 + 1, mid + 1, r, pos, val, st)
+
+    st[id] = st[id * 2] + st[id * 2 + 1]
 
 
 def query(id, l, r, u, v, st):
 
     if v < l or r < u:
-        return INF
+        return 0
 
     if u <= l and r <= v:
         return st[id]
 
     mid = (l + r) // 2
 
-    return min(
-        query(id * 2, l, mid, u, v, st),
-        query(id * 2 + 1, mid + 1, r, u, v, st)
+    return (
+        query(id * 2, l, mid, u, v, st)
+        + query(id * 2 + 1, mid + 1, r, u, v, st)
     )
 
 
-def solve(a, queries):
+def solve(a, operations):
 
     n = len(a) - 1
 
-    st = [INF] * (4 * (n + 5))
+    st = [0] * (4 * (n + 5))
 
     build(1, 1, n, st, a)
 
     ans = []
 
-    for l, r in queries:
-        ans.append(str(query(1, 1, n, l, r, st)))
+    for op in operations:
+
+        if op[0] == 1:
+
+            _, i, x = op
+
+            update(1, 1, n, i, x, st)
+
+        else:
+
+            _, l, r = op
+
+            ans.append(str(query(1, 1, n, l, r, st)))
 
     return "\n".join(ans)
 
@@ -118,8 +141,8 @@ def gen_test(sub):
 
     elif sub == 2:
 
-        n = random.randint(5000, 10000)
-        q = random.randint(5000, 10000)
+        n = random.randint(5000, 20000)
+        q = random.randint(5000, 20000)
 
     else:
 
@@ -129,18 +152,27 @@ def gen_test(sub):
     a = [0]
 
     for _ in range(n):
-        a.append(random.randint(-10 ** 9, 10 ** 9))
+        a.append(random.randint(-10**9, 10**9))
 
-    queries = []
+    ops = []
 
     for _ in range(q):
 
-        l = random.randint(1, n)
-        r = random.randint(l, n)
+        if random.randint(0, 1):
 
-        queries.append((l, r))
+            i = random.randint(1, n)
+            x = random.randint(-10**9, 10**9)
 
-    return n, q, a, queries
+            ops.append((1, i, x))
+
+        else:
+
+            l = random.randint(1, n)
+            r = random.randint(l, n)
+
+            ops.append((2, l, r))
+
+    return n, q, a, ops
 
 # ==================================================
 # RUN CPP
@@ -202,14 +234,18 @@ for sub in [1,2,3]:
 
     for tc in range(TEST_PER_SUBTASK):
 
-        n,q,a,queries = gen_test(sub)
+        n,q,a,ops = gen_test(sub)
 
         inp = f"{n} {q}\n"
 
         inp += " ".join(map(str,a[1:])) + "\n"
 
-        for l,r in queries:
-            inp += f"{l} {r}\n"
+        for op in ops:
+
+            if op[0] == 1:
+                inp += f"1 {op[1]} {op[2]}\n"
+            else:
+                inp += f"2 {op[1]} {op[2]}\n"
 
         out_cpp, runtime, status = run_cpp(inp)
 
@@ -225,7 +261,7 @@ for sub in [1,2,3]:
             ok = False
             break
 
-        out_std = solve(a,queries)
+        out_std = solve(a,ops)
 
         if out_cpp != out_std:
 

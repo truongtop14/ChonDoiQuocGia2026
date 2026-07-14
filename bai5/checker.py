@@ -1,3 +1,4 @@
+
 import os
 import random
 import subprocess
@@ -25,7 +26,6 @@ EXE_FILE = os.path.join(
 
 TIME_LIMIT = 1.0          # seconds
 TEST_PER_SUBTASK = 5
-
 
 # ==================================================
 # COMPILE
@@ -55,55 +55,44 @@ if ret.returncode != 0:
 print("Compile Success!")
 
 # ==================================================
-# SEGMENT TREE (Official Solution)
+# PRECOMPUTE PRIME SIEVE
 # ==================================================
 
-INF = 10 ** 18
+MAXN = 10**7
 
-def build(id, l, r, st, a):
+print("Building Sieve...")
 
-    if l == r:
-        st[id] = a[l]
-        return
+is_prime = [True] * (MAXN + 1)
 
-    mid = (l + r) // 2
+is_prime[0] = False
+is_prime[1] = False
 
-    build(id * 2, l, mid, st, a)
-    build(id * 2 + 1, mid + 1, r, st, a)
+i = 2
+while i * i <= MAXN:
 
-    st[id] = min(st[id * 2], st[id * 2 + 1])
+    if is_prime[i]:
 
+        j = i * i
 
-def query(id, l, r, u, v, st):
+        while j <= MAXN:
+            is_prime[j] = False
+            j += i
 
-    if v < l or r < u:
-        return INF
+    i += 1
 
-    if u <= l and r <= v:
-        return st[id]
+prefix = [0] * (MAXN + 1)
 
-    mid = (l + r) // 2
+for i in range(1, MAXN + 1):
+    prefix[i] = prefix[i - 1] + (1 if is_prime[i] else 0)
 
-    return min(
-        query(id * 2, l, mid, u, v, st),
-        query(id * 2 + 1, mid + 1, r, u, v, st)
-    )
+print("Sieve Done!")
 
+# ==================================================
+# OFFICIAL SOLUTION
+# ==================================================
 
-def solve(a, queries):
-
-    n = len(a) - 1
-
-    st = [INF] * (4 * (n + 5))
-
-    build(1, 1, n, st, a)
-
-    ans = []
-
-    for l, r in queries:
-        ans.append(str(query(1, 1, n, l, r, st)))
-
-    return "\n".join(ans)
+def solve(n):
+    return prefix[n]
 
 # ==================================================
 # TEST GENERATOR
@@ -112,35 +101,15 @@ def solve(a, queries):
 def gen_test(sub):
 
     if sub == 1:
-
-        n = random.randint(1, 1000)
-        q = random.randint(1, 1000)
+        n = random.randint(1, 100000)
 
     elif sub == 2:
-
-        n = random.randint(5000, 10000)
-        q = random.randint(5000, 10000)
+        n = random.randint(1, 1000000)
 
     else:
+        n = random.randint(1, 10000000)
 
-        n = random.randint(100000, 200000)
-        q = random.randint(100000, 200000)
-
-    a = [0]
-
-    for _ in range(n):
-        a.append(random.randint(-10 ** 9, 10 ** 9))
-
-    queries = []
-
-    for _ in range(q):
-
-        l = random.randint(1, n)
-        r = random.randint(l, n)
-
-        queries.append((l, r))
-
-    return n, q, a, queries
+    return n
 
 # ==================================================
 # RUN CPP
@@ -202,14 +171,9 @@ for sub in [1,2,3]:
 
     for tc in range(TEST_PER_SUBTASK):
 
-        n,q,a,queries = gen_test(sub)
+        n = gen_test(sub)
 
-        inp = f"{n} {q}\n"
-
-        inp += " ".join(map(str,a[1:])) + "\n"
-
-        for l,r in queries:
-            inp += f"{l} {r}\n"
+        inp = str(n) + "\n"
 
         out_cpp, runtime, status = run_cpp(inp)
 
@@ -225,20 +189,17 @@ for sub in [1,2,3]:
             ok = False
             break
 
-        out_std = solve(a,queries)
+        out_std = str(solve(n))
 
         if out_cpp != out_std:
 
             print(f"Test {tc+1}: WA")
 
             print("\nInput:")
-            print(inp[:1000])
+            print(inp)
 
-            print("\nExpected:")
-            print("\n".join(out_std.split("\n")[:20]))
-
-            print("\nGot:")
-            print("\n".join(out_cpp.split("\n")[:20]))
+            print("Expected:",out_std)
+            print("Got     :",out_cpp)
 
             ok = False
             break
